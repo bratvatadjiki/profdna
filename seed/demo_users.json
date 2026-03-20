@@ -1,0 +1,4 @@
+[
+  {"email": "admin@profdna.local", "full_name": "Admin User", "role": "admin"},
+  {"email": "editor@profdna.local", "full_name": "Editor User", "role": "editor"}
+]
