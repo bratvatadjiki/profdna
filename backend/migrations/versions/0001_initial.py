@@ -15,20 +15,79 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade() -> None:
-    role_enum = postgresql.ENUM("admin", "editor", "candidate", name="userrole")
-    test_status_enum = postgresql.ENUM("draft", "published", "archived", name="teststatus")
-    question_type_enum = postgresql.ENUM(
-        "single_choice", "multiple_choice", "scale", "text", name="questiontype"
-    )
-    session_status_enum = postgresql.ENUM(
-        "created", "in_progress", "completed", "expired", name="sessionstatus"
-    )
+role_enum = postgresql.ENUM(
+    "admin",
+    "editor",
+    "candidate",
+    name="userrole",
+    create_type=False,
+)
+test_status_enum = postgresql.ENUM(
+    "draft",
+    "published",
+    "archived",
+    name="teststatus",
+    create_type=False,
+)
+question_type_enum = postgresql.ENUM(
+    "single_choice",
+    "multiple_choice",
+    "scale",
+    "text",
+    name="questiontype",
+    create_type=False,
+)
+session_status_enum = postgresql.ENUM(
+    "created",
+    "in_progress",
+    "completed",
+    "expired",
+    name="sessionstatus",
+    create_type=False,
+)
 
-    role_enum.create(op.get_bind(), checkfirst=True)
-    test_status_enum.create(op.get_bind(), checkfirst=True)
-    question_type_enum.create(op.get_bind(), checkfirst=True)
-    session_status_enum.create(op.get_bind(), checkfirst=True)
+
+def upgrade() -> None:
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
+                CREATE TYPE userrole AS ENUM ('admin', 'editor', 'candidate');
+            END IF;
+        END$$;
+        """
+    )
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'teststatus') THEN
+                CREATE TYPE teststatus AS ENUM ('draft', 'published', 'archived');
+            END IF;
+        END$$;
+        """
+    )
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'questiontype') THEN
+                CREATE TYPE questiontype AS ENUM ('single_choice', 'multiple_choice', 'scale', 'text');
+            END IF;
+        END$$;
+        """
+    )
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'sessionstatus') THEN
+                CREATE TYPE sessionstatus AS ENUM ('created', 'in_progress', 'completed', 'expired');
+            END IF;
+        END$$;
+        """
+    )
 
     op.create_table(
         "users",
@@ -37,7 +96,12 @@ def upgrade() -> None:
         sa.Column("full_name", sa.String(length=255), nullable=False),
         sa.Column("role", role_enum, nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
     )
 
     op.create_table(
@@ -49,19 +113,34 @@ def upgrade() -> None:
         sa.Column("status", test_status_enum, nullable=False, server_default="draft"),
         sa.Column("time_limit_sec", sa.Integer(), nullable=True),
         sa.Column("created_by", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
     )
 
     op.create_table(
         "questions",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("test_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tests.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "test_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tests.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("code", sa.String(length=100), nullable=False),
         sa.Column("type", question_type_enum, nullable=False),
         sa.Column("title", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("order_index", sa.Integer(), nullable=False),
-        sa.Column("config", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "config",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.Column("is_required", sa.Boolean(), nullable=False, server_default=sa.text("true")),
     )
     op.create_index("ix_questions_test_order", "questions", ["test_id", "order_index"], unique=False)
@@ -69,7 +148,12 @@ def upgrade() -> None:
     op.create_table(
         "test_links",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("test_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tests.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "test_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tests.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("token", sa.String(length=255), nullable=False, unique=True),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
@@ -79,10 +163,20 @@ def upgrade() -> None:
         "sessions",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=True),
-        sa.Column("test_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tests.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "test_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tests.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("test_link_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("test_links.id"), nullable=True),
         sa.Column("status", session_status_enum, nullable=False, server_default="created"),
-        sa.Column("started_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column(
+            "started_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("score_raw", sa.Float(), nullable=True),
     )
@@ -90,28 +184,68 @@ def upgrade() -> None:
     op.create_table(
         "answers",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("session_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("question_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("questions.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("value", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column(
+            "session_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("sessions.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "question_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("questions.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "value",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
     )
 
     op.create_table(
         "metrics",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("test_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tests.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "test_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tests.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("code", sa.String(length=100), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
-        sa.Column("formula_config", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "formula_config",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
     )
 
     op.create_table(
         "report_templates",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("test_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("tests.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "test_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tests.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("code", sa.String(length=100), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
-        sa.Column("template_config", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "template_config",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
     )
 
 
@@ -126,7 +260,7 @@ def downgrade() -> None:
     op.drop_table("tests")
     op.drop_table("users")
 
-    postgresql.ENUM(name="sessionstatus").drop(op.get_bind(), checkfirst=True)
-    postgresql.ENUM(name="questiontype").drop(op.get_bind(), checkfirst=True)
-    postgresql.ENUM(name="teststatus").drop(op.get_bind(), checkfirst=True)
-    postgresql.ENUM(name="userrole").drop(op.get_bind(), checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS sessionstatus")
+    op.execute("DROP TYPE IF EXISTS questiontype")
+    op.execute("DROP TYPE IF EXISTS teststatus")
+    op.execute("DROP TYPE IF EXISTS userrole")
