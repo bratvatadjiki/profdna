@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Отчет для профориентолога</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 32px;
+            color: #222;
+        }
+        h1, h2 {
+            margin-bottom: 12px;
+        }
+        .block {
+            margin-bottom: 24px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: #f3f3f3;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Отчет для профориентолога</h1>
+
+    <div class="block">
+        <p><strong>Тест:</strong> {{ test_title }}</p>
+        <p><strong>Участник:</strong> {{ participant_name or "—" }}</p>
+        <p><strong>Email:</strong> {{ participant_email or "—" }}</p>
+        <p><strong>Статус:</strong> {{ session_status }}</p>
+        <p><strong>Прогресс:</strong> {{ answered_count }} / {{ total_questions }} ({{ progress_percent }}%)</p>
+    </div>
+
+    <div class="block">
+        <h2>Метрики</h2>
+        <table>
+            <tr>
+                <th>Шкала</th>
+                <th>Сырой балл</th>
+                <th>Нормализованный</th>
+                <th>Интерпретация</th>
+            </tr>
+            {% for scale in metrics.scales %}
+            <tr>
+                <td>{{ scale.title }}</td>
+                <td>{{ scale.raw_score }}</td>
+                <td>{{ scale.normalized_score }}</td>
+                <td>{{ scale.interpretation }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="block">
+        <h2>Ответы</h2>
+        <table>
+            <tr>
+                <th>ID ответа</th>
+                <th>ID вопроса</th>
+                <th>value_text</th>
+                <th>value_json</th>
+            </tr>
+            {% for answer in answers %}
+            <tr>
+                <td>{{ answer.id }}</td>
+                <td>{{ answer.question_id }}</td>
+                <td>{{ answer.value_text }}</td>
+                <td><pre>{{ answer.value_json }}</pre></td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>

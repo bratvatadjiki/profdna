@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Отчет для клиента</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 32px;
+            color: #222;
+        }
+        h1, h2 {
+            margin-bottom: 12px;
+        }
+        .block {
+            margin-bottom: 24px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #f3f3f3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Отчет для клиента</h1>
+
+    <div class="block">
+        <p><strong>Тест:</strong> {{ test_title }}</p>
+        <p><strong>Участник:</strong> {{ participant_name or "—" }}</p>
+        <p><strong>Email:</strong> {{ participant_email or "—" }}</p>
+        <p><strong>Прогресс:</strong> {{ answered_count }} / {{ total_questions }} ({{ progress_percent }}%)</p>
+    </div>
+
+    <div class="block">
+        <h2>Краткий итог</h2>
+        <p><strong>Количество шкал:</strong> {{ metrics.summary.total_scales }}</p>
+        <p><strong>Доминирующая шкала:</strong> {{ metrics.summary.dominant_scale or "—" }}</p>
+        <p><strong>Значение:</strong> {{ metrics.summary.dominant_score }}</p>
+    </div>
+
+    <div class="block">
+        <h2>Метрики</h2>
+        <table>
+            <tr>
+                <th>Шкала</th>
+                <th>Сырой балл</th>
+                <th>Нормализованный</th>
+                <th>Интерпретация</th>
+            </tr>
+            {% for scale in metrics.scales %}
+            <tr>
+                <td>{{ scale.title }}</td>
+                <td>{{ scale.raw_score }}</td>
+                <td>{{ scale.normalized_score }}</td>
+                <td>{{ scale.interpretation }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>
